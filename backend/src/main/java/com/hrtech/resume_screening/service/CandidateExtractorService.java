@@ -22,6 +22,28 @@ public class CandidateExtractorService {
         return candidate;
     }
 
+    // ================================================================
+    // NEW — Determine Status from Score (5 bands)
+    // ================================================================
+    /**
+     * Score Bands:
+     * 85–100 → AUTO_SHORTLISTED  (Excellent)
+     * 70–84  → SHORTLISTED       (Good)
+     * 55–69  → UNDER_CONSIDERATION (Average)
+     * 40–54  → REJECTED          (Below Average)
+     * 0–39   → AUTO_REJECTED     (Poor)
+     */
+    public String determineStatus(double score) {
+        if (score >= 85) return "AUTO_SHORTLISTED";
+        if (score >= 70) return "SHORTLISTED";
+        if (score >= 55) return "UNDER_CONSIDERATION";
+        if (score >= 40) return "REJECTED";
+        return "AUTO_REJECTED";
+    }
+
+    // ================================================================
+    // EXISTING — Extract candidate info from resume text (unchanged)
+    // ================================================================
     private String extractEmail(String text) {
         Pattern p = Pattern.compile(
                 "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}");
@@ -44,11 +66,9 @@ public class CandidateExtractorService {
         for (String line : lines) {
             line = line.trim();
 
-            // Skip empty or wrong length
             if (line.isEmpty() || line.length() < 3
                     || line.length() > 60) continue;
 
-            // Skip lines with special characters
             if (line.contains("@"))          continue;
             if (line.matches(".*\\d{5,}.*")) continue;
             if (line.contains("http"))       continue;
@@ -59,7 +79,6 @@ public class CandidateExtractorService {
             if (line.contains(","))          continue;
             if (line.contains("("))          continue;
 
-            // Skip resume section headers
             String lower = line.toLowerCase();
             if (lower.contains("resume")      ||
                     lower.contains("curriculum")  ||
@@ -82,7 +101,6 @@ public class CandidateExtractorService {
                     lower.contains("hobby")       ||
                     lower.contains("interest"))   continue;
 
-            // Must look like a proper name (letters and spaces only)
             if (line.matches("[A-Za-z]+(\\s[A-Za-z]+){0,3}")) {
                 log.info("Name extracted: {}", line);
                 return line;

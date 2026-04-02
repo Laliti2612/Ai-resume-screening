@@ -1,12 +1,14 @@
 package com.hrtech.resume_screening.controller;
 
 import com.hrtech.resume_screening.entity.Candidate;
-import com.hrtech.resume_screening.repository
-        .CandidateRepository;
+import com.hrtech.resume_screening.entity.Resume;
+import com.hrtech.resume_screening.repository.CandidateRepository;
+import com.hrtech.resume_screening.repository.ResumeSkillRepository;
 import com.hrtech.resume_screening.security.JwtUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.*;
 
 @RestController
@@ -16,53 +18,54 @@ import java.util.*;
 public class CandidateController {
 
     private final CandidateRepository candidateRepository;
-    private final JwtUtil             jwtUtil;
+    private final ResumeSkillRepository resumeSkillRepository;
+    private final JwtUtil jwtUtil;
 
     public CandidateController(
             CandidateRepository candidateRepository,
+            ResumeSkillRepository resumeSkillRepository,
             JwtUtil jwtUtil) {
-        this.candidateRepository = candidateRepository;
-        this.jwtUtil             = jwtUtil;
+        this.candidateRepository   = candidateRepository;
+        this.resumeSkillRepository = resumeSkillRepository;
+        this.jwtUtil               = jwtUtil;
     }
 
-    // ── Get All Candidates (filtered by user) ─────────────────
+    // ================================================================
+    // GET ALL CANDIDATES — returns clean flat list (no nested resumes)
+    // ================================================================
     @GetMapping
-    public ResponseEntity<Map<String, Object>>
-    getAllCandidates(
+    public ResponseEntity<List<Map<String, Object>>> getAllCandidates(
             @RequestHeader(value = "Authorization",
                     required = false) String auth) {
 
         String email = extractEmail(auth);
-        log.info("GET CANDIDATES | user={}", email);
+        log.info("GET candidates for: {}", email);
 
-        List<Candidate> candidates;
-        if (email.equals("unknown")) {
-            candidates = candidateRepository.findAll();
-        } else {
-            candidates = candidateRepository
-                    .findByCreatedByEmail(email);
+        List<Candidate> candidates = email.equals("unknown")
+                ? candidateRepository.findAll()
+                : candidateRepository.findByCreatedByEmail(email);
+
+        // Convert to clean flat maps — no nested objects
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Candidate c : candidates) {
+            result.add(toCleanMap(c));
         }
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("data",    candidates);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(result);
     }
 
-    // ── Get Candidate By ID ───────────────────────────────────
+    // ================================================================
+    // GET ONE CANDIDATE
+    // ================================================================
     @GetMapping("/{id}")
-    public ResponseEntity<Map<String, Object>>
-    getCandidateById(@PathVariable Long id) {
-
+    public ResponseEntity<Map<String, Object>> getCandidateById(
+            @PathVariable Long id) {
         Map<String, Object> response = new HashMap<>();
         try {
-            Candidate candidate = candidateRepository
-                    .findById(id)
-                    .orElseThrow(() ->
-                            new RuntimeException(
-                                    "Not found"));
+            Candidate c = candidateRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Not found"));
             response.put("success", true);
-            response.put("data",    candidate);
+            response.put("data", toCleanMap(c));
         } catch (Exception e) {
             response.put("success", false);
             response.put("message", e.getMessage());
@@ -70,28 +73,21 @@ public class CandidateController {
         return ResponseEntity.ok(response);
     }
 
-    // ── Update Status ─────────────────────────────────────────
+    // ================================================================
+    // UPDATE STATUS
+    // ================================================================
     @PatchMapping("/{id}/status")
-    public ResponseEntity<Map<String, Object>>
-    updateStatus(
+    public ResponseEntity<Map<String, Object>> updateStatus(
             @PathVariable Long id,
             @RequestBody Map<String, String> body) {
-
         Map<String, Object> response = new HashMap<>();
         try {
-            Candidate candidate = candidateRepository
-                    .findById(id)
-                    .orElseThrow(() ->
-                            new RuntimeException(
-                                    "Not found"));
-            candidate.setStatus(body.get("status"));
-            candidateRepository.save(candidate);
-
-            log.info("Status updated | id={} status={}",
-                    id, body.get("status"));
-
+            Candidate c = candidateRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Not found"));
+            c.setStatus(body.get("status"));
+            candidateRepository.save(c);
             response.put("success", true);
-            response.put("data",    candidate);
+            response.put("data", toCleanMap(c));
         } catch (Exception e) {
             response.put("success", false);
             response.put("message", e.getMessage());
@@ -99,7 +95,9 @@ public class CandidateController {
         return ResponseEntity.ok(response);
     }
 
-    // ── Delete Candidate ──────────────────────────────────────
+    // ================================================================
+    // DELETE CANDIDATE
+    // ================================================================
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, Object>> deleteCandidate(
             @PathVariable Long id) {
@@ -110,9 +108,30 @@ public class CandidateController {
                 response.put("message", "Candidate not found");
                 return ResponseEntity.ok(response);
             }
+
+            Candidate candidate = candidateRepository
+                    .findById(id).orElse(null);
+
+            if (candidate != null && candidate.getResumes() != null) {
+                for (Resume resume : candidate.getResumes()) {
+                    // Delete resume skills first (FK constraint)
+                    List<com.hrtech.resume_screening.entity.ResumeSkill> skills =
+                            resumeSkillRepository.findAll().stream()
+                                    .filter(rs -> rs.getResume().getId()
+                                            .equals(resume.getId()))
+                                    .toList();
+                    resumeSkillRepository.deleteAll(skills);
+                    log.info("Deleted {} skills for resume {}",
+                            skills.size(), resume.getId());
+                }
+            }
+
             candidateRepository.deleteById(id);
+            log.info("Candidate {} permanently deleted", id);
+
             response.put("success", true);
             response.put("message", "Deleted successfully");
+
         } catch (Exception e) {
             log.error("Delete error: {}", e.getMessage());
             response.put("success", false);
@@ -121,21 +140,39 @@ public class CandidateController {
         return ResponseEntity.ok(response);
     }
 
-    // ── Extract email from JWT ────────────────────────────────
+    // ================================================================
+    // HELPER — Convert Candidate to clean flat Map (no nesting)
+    // ================================================================
+    private Map<String, Object> toCleanMap(Candidate c) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("id",               c.getId());
+        map.put("fullName",         c.getFullName());
+        map.put("email",            c.getEmail());
+        map.put("phone",            c.getPhone());
+        map.put("linkedinUrl",      c.getLinkedinUrl());
+        map.put("githubUrl",        c.getGithubUrl());
+        map.put("totalExperience",  c.getTotalExperience());
+        map.put("totalScore",       c.getTotalScore());
+        map.put("status",           c.getStatus());
+        map.put("createdByEmail",   c.getCreatedByEmail());
+        map.put("createdAt",        c.getCreatedAt());
+        // Resume count only — no nested resume data
+        int resumeCount = (c.getResumes() != null)
+                ? c.getResumes().size() : 0;
+        map.put("resumeCount", resumeCount);
+        return map;
+    }
+
+    // ================================================================
+    // HELPER — Extract email from JWT token
+    // ================================================================
     private String extractEmail(String auth) {
-        if (auth == null || auth.isBlank())
-            return "unknown";
+        if (auth == null || auth.isBlank()) return "unknown";
         try {
-            String token = auth
-                    .replace("Bearer ", "").trim();
-            if (token.startsWith("eyJ")) {
-                return jwtUtil.extractEmail(token);
-            }
-            return token
-                    .replace("demo-token-", "").trim();
+            String token = auth.replace("Bearer ", "").trim();
+            return jwtUtil.extractEmail(token);
         } catch (Exception e) {
-            log.warn("Token extraction failed: {}",
-                    e.getMessage());
+            log.error("Token error: {}", e.getMessage());
             return "unknown";
         }
     }

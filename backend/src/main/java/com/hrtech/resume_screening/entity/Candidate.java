@@ -34,8 +34,17 @@ public class Candidate {
     @Column(name = "total_score")
     private Double totalScore = 0.0;
 
+    /**
+     * Status values (5 bands):
+     * AUTO_SHORTLISTED  — Score 85–100 (Excellent)
+     * SHORTLISTED       — Score 70–84  (Good)
+     * UNDER_CONSIDERATION — Score 55–69 (Average)
+     * REJECTED          — Score 40–54  (Below Average)
+     * AUTO_REJECTED     — Score 0–39   (Poor)
+     * HIRED             — Manually set by HR
+     */
     @Column(name = "status")
-    private String status = "NEW";
+    private String status = "UNDER_CONSIDERATION";
 
     @Column(name = "created_by_email")
     private String createdByEmail;
@@ -49,6 +58,9 @@ public class Candidate {
     @JsonManagedReference
     private List<Resume> resumes;
 
+    // ================================================================
+    // Getters & Setters
+    // ================================================================
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
