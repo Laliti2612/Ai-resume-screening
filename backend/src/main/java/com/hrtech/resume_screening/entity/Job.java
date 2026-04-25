@@ -1,6 +1,8 @@
 package com.hrtech.resume_screening.entity;
 
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "jobs")
@@ -34,8 +36,20 @@ public class Job {
     @Column(name = "created_by_email")
     private String createdByEmail;
 
-    public Job() {}
+    // ── NEW: unique public share token ─────────────────────────
+    @Column(name = "public_id", unique = true)
+    private String publicId;
 
+    @Column(name = "created_at")
+    private LocalDateTime createdAt = LocalDateTime.now();
+
+    public Job() {
+        // Auto-generate publicId when job is created
+        this.publicId = UUID.randomUUID().toString()
+                .replace("-", "").substring(0, 12);
+    }
+
+    // ── Getters & Setters ──────────────────────────────────────
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -62,4 +76,10 @@ public class Job {
 
     public String getCreatedByEmail() { return createdByEmail; }
     public void setCreatedByEmail(String e) { this.createdByEmail = e; }
+
+    public String getPublicId() { return publicId; }
+    public void setPublicId(String p) { this.publicId = p; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime c) { this.createdAt = c; }
 }
