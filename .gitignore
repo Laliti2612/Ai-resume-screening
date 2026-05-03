@@ -10,14 +10,19 @@ target/
 *.iws
 *.ipr
 
-# Environment files
+# Environment and secrets
 .env
 .env.local
+**/application.yml
+**/application.properties
+**/application-*.yml
+**/application-*.properties
 
-# Node modules (both root and frontend)
+# Node modules
 node_modules/
 frontend/node_modules/
 frontend/build/
+frontend/.env
 
 # Maven wrapper
 .mvn/wrapper/maven-wrapper.jar
@@ -30,8 +35,8 @@ logs/
 .DS_Store
 Thumbs.db
 
-# Package lock (optional)
-package-lock.json
-
-# Spring Boot
+# Spring Boot local config
 application-local.yml
+
+# Package locks
+package-lock.json
