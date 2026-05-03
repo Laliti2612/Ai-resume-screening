@@ -392,7 +392,6 @@ public class AuthController {
                     .orElse(null);
         return u;
     }
-
     private String maskEmail(String email) {
         if (email == null || !email.contains("@"))
             return email;
