@@ -27,6 +27,7 @@ const Jobs = () => {
     .catch(err => console.log('Jobs error:', err));
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchJobs(); }, []);
 
   const handleSave = async () => {
@@ -56,8 +57,7 @@ const Jobs = () => {
       fetchJobs();
       setTimeout(() => setMessage(''), 3000);
     } catch (err) {
-      setMessage('✗ Failed to create job: ' +
-        (err.response?.data || err.message));
+      setMessage('✗ Failed to create job: ' + (err.response?.data || err.message));
     }
   };
 
@@ -196,23 +196,18 @@ const Jobs = () => {
                     <td>{j.experienceMin}–{j.experienceMax} yrs</td>
                     <td className="skills-cell">{j.requiredSkills}</td>
                     <td>
-                      <span className="badge"
-                            style={{ background: st.bg, color: st.color }}>
+                      <span className="badge" style={{ background: st.bg, color: st.color }}>
                         {j.status}
                       </span>
                     </td>
                     <td>{j.createdAt ? new Date(j.createdAt).toLocaleDateString() : '-'}</td>
                     <td onClick={e => e.stopPropagation()}>
-                      <button className="share-btn"
-                              onClick={e => openShareModal(j, e)}
-                              title="Share job link">
+                      <button className="share-btn" onClick={e => openShareModal(j, e)} title="Share job link">
                         🔗 Share
                       </button>
                     </td>
                     <td>
-                      <button className="delete-btn"
-                              onClick={() => deleteJob(j.id)}
-                              title="Delete job">🗑</button>
+                      <button className="delete-btn" onClick={() => deleteJob(j.id)} title="Delete job">🗑</button>
                     </td>
                   </tr>
                 );
@@ -222,59 +217,34 @@ const Jobs = () => {
         </table>
       </div>
 
-      {/* ── Share Modal ───────────────────────────────────────── */}
       {shareModal && (
         <div className="modal-overlay" onClick={() => setShareModal(null)}>
           <div className="share-modal" onClick={e => e.stopPropagation()}>
-
             <div className="share-modal-header">
               <div>
                 <h3>🔗 Share Job Opening</h3>
-                <p style={{ color: '#64748b', fontSize: 13, margin: 0 }}>
-                  {shareModal.title}
-                </p>
+                <p style={{ color: '#64748b', fontSize: 13, margin: 0 }}>{shareModal.title}</p>
               </div>
-              <button className="modal-close"
-                      onClick={() => setShareModal(null)}>✕</button>
+              <button className="modal-close" onClick={() => setShareModal(null)}>✕</button>
             </div>
-
             <div className="share-modal-body">
-
-              {/* Job summary */}
               <div className="share-job-info">
-                <div className="share-info-row">
-                  <span>📍</span>
-                  <span>{shareModal.location || 'Not specified'}</span>
-                </div>
-                <div className="share-info-row">
-                  <span>💼</span>
-                  <span>{shareModal.experienceMin}–{shareModal.experienceMax} years experience</span>
-                </div>
-                <div className="share-info-row">
-                  <span>🛠</span>
-                  <span>{shareModal.requiredSkills}</span>
-                </div>
+                <div className="share-info-row"><span>📍</span><span>{shareModal.location || 'Not specified'}</span></div>
+                <div className="share-info-row"><span>💼</span><span>{shareModal.experienceMin}–{shareModal.experienceMax} years experience</span></div>
+                <div className="share-info-row"><span>🛠</span><span>{shareModal.requiredSkills}</span></div>
               </div>
-
-              {/* Copy link */}
               <div className="share-link-label">🔗 Public Link</div>
               <div className="share-link-box">
-                <input type="text" readOnly
-                       value={getPublicUrl(shareModal)}
-                       className="share-link-input" />
+                <input type="text" readOnly value={getPublicUrl(shareModal)} className="share-link-input" />
                 <button
                   className={`copy-btn ${copiedId === shareModal.id ? 'copied' : ''}`}
                   onClick={e => copyLink(shareModal, e)}>
                   {copiedId === shareModal.id ? '✓ Copied!' : '📋 Copy'}
                 </button>
               </div>
-
-              <p style={{ fontSize: 12, color: '#94a3b8',
-                          margin: '10px 0 16px', textAlign: 'center' }}>
+              <p style={{ fontSize: 12, color: '#94a3b8', margin: '10px 0 16px', textAlign: 'center' }}>
                 Anyone with this link can view and apply — no login needed
               </p>
-
-              {/* Share options */}
               <div className="share-options">
                 <button className="share-option-btn whatsapp"
                   onClick={() => {

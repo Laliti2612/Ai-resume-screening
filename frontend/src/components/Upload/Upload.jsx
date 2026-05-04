@@ -19,6 +19,7 @@ const Upload = () => {
     Authorization: `Bearer ${token}`
   });
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!token) return;
     axios.get('http://localhost:8080/api/jobs', {
@@ -27,7 +28,6 @@ const Upload = () => {
     .then(res => {
       const allJobs = Array.isArray(res.data) ? res.data :
                       Array.isArray(res.data.data) ? res.data.data : [];
-      // Only show jobs belonging to logged-in user
       setJobs(allJobs);
       if (allJobs.length > 0) setJobId(String(allJobs[0].id));
     })
@@ -83,7 +83,6 @@ const Upload = () => {
           {
             headers: {
               Authorization: `Bearer ${token}`
-              // Do NOT set Content-Type here — browser sets it with boundary
             },
             onUploadProgress: (e) => {
               const pct = Math.round((e.loaded * 100) / e.total);
@@ -277,8 +276,6 @@ const Upload = () => {
             return (
               <div key={i} className="result-card success"
                    style={{ borderColor: st.border }}>
-
-                {/* Header */}
                 <div className="result-header" style={{ background: st.bg }}>
                   <div className="result-name-section">
                     <div className="result-candidate">
@@ -304,7 +301,6 @@ const Upload = () => {
                   </div>
                 </div>
 
-                {/* Score Breakdown */}
                 <div className="result-body">
                   <div className="score-bars">
                     {[
@@ -342,7 +338,6 @@ const Upload = () => {
                     ))}
                   </div>
 
-                  {/* Extracted Skills */}
                   {r.skills && r.skills.length > 0 && (
                     <div className="result-skills">
                       <div className="skills-title">Extracted Skills</div>
@@ -359,7 +354,6 @@ const Upload = () => {
                     </div>
                   )}
 
-                  {/* AI Summary */}
                   {r.aiSummary && (
                     <div className="result-summary">
                       <span className="summary-icon">🤖</span>
