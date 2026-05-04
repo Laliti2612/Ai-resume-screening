@@ -7,6 +7,10 @@ pipeline {
         jdk 'JDK-17'
     }
 
+    environment {
+        CI = 'false'
+    }
+
     stages {
 
         stage('Checkout Code') {
@@ -28,7 +32,7 @@ pipeline {
             steps {
                 dir('frontend') {
                     bat 'npm install'
-                    bat 'set CI=false && npm run build'
+                    bat 'npm run build'
                 }
             }
         }
